@@ -3,29 +3,6 @@
 ## Project Overview
 Graph Builder is a Flutter application that allows users to create and navigate tree-like graphs with interactive nodes. Users can add child nodes, select active nodes, and delete nodes with their children.
 
-## Features Implemented
-
-### Core Requirements ✅
-- **Root Node**: App starts with a single root node labeled "1"
-- **Add Child Nodes**: Users can add child nodes to the currently active node
-- **Incremental Labeling**: Each new node gets an incrementing number ("2", "3", etc.)
-- **Node Selection**: Tap any node to make it active (highlighted with gold color)
-- **Node Deletion**: Delete nodes along with all their children
-- **Visual Hierarchy**: Clear tree structure with curved connections
-- **Maximum Depth**: Supports up to 100 levels of depth
-
-### Bonus Features ✅
-- **Creative Visualization**: 
-  - Curved edges connecting parent-child nodes
-  - Color-coded nodes by depth level
-  - Pulsing animation for active nodes
-  - Depth indicators on nodes
-  - Child count badges
-- **Smooth Interactions**:
-  - Hover effects on nodes
-  - Animated scaling
-  - Interactive pan and zoom canvas
-
 ## Technical Architecture
 
 ### Project Structure
@@ -182,18 +159,6 @@ flutter run
 - ✅ Maximum depth handling
 - ✅ Reset functionality
 - ✅ UI responsiveness
-
-## Future Enhancements
-
-### Potential Improvements
-- Node editing (rename labels)
-- Save/load graph data
-- Export graph as image
-- Undo/redo functionality
-- Search nodes by label
-- Different layout algorithms
-- Node grouping/clustering
-- Performance metrics display
 
 ## Technical Decisions
 
