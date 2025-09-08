@@ -10,54 +10,59 @@ class GraphScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         title: const Text(
           'Graph Builder',
           style: TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.5),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1E293B),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
         elevation: 0,
-        shadowColor: Colors.black.withOpacity(0.1),
+        shadowColor: Theme.of(context).shadowColor.withOpacity(0.1),
         surfaceTintColor: Colors.transparent,
         actions: [
           Consumer<GraphProvider>(
             builder: (context, provider, child) {
-              return IconButton(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Reset Graph'),
-                      content: const Text(
-                        'Are you sure you want to reset the graph? This will remove all nodes except the root.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Reset Graph'),
+                          content: const Text(
+                            'Are you sure you want to reset the graph?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () {
+                                provider.resetGraph();
+                                Navigator.pop(context);
+                              },
+                              child: const Text('Reset'),
+                            ),
+                          ],
                         ),
-                        FilledButton(
-                          onPressed: () {
-                            provider.resetGraph();
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Reset'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Reset Graph',
+                      );
+                    },
+                    icon: const Icon(Icons.refresh),
+                    tooltip: 'Reset Graph',
+                  ),
+                ],
               );
             },
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: const Column(
+      body: Column(
         children: [
           Expanded(child: GraphCanvas()),
           ControlPanel(),

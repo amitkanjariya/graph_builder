@@ -10,11 +10,11 @@ class ControlPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200, width: 1)),
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: Theme.of(context).dividerColor, width: 1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Theme.of(context).shadowColor.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -29,24 +29,23 @@ class ControlPanel extends StatelessWidget {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Active node info
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200, width: 1),
+                  border: Border.all(color: Theme.of(context).dividerColor, width: 1),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.radio_button_checked,
                       color: activeNode?.isActive == true
-                          ? const Color(0xFF8B5CF6)
-                          : Colors.grey,
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline,
                       size: 20,
                     ),
                     const SizedBox(width: 12),
@@ -59,7 +58,7 @@ class ControlPanel extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -67,10 +66,10 @@ class ControlPanel extends StatelessWidget {
                             activeNode != null
                                 ? 'Node ${activeNode.label} (${activeNode.childCount} children, depth ${activeNode.depth})'
                                 : 'No active node',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF1E293B),
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -79,10 +78,7 @@ class ControlPanel extends StatelessWidget {
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // Control buttons
               Row(
                 children: [
                   Expanded(
@@ -91,7 +87,27 @@ class ControlPanel extends StatelessWidget {
                       icon: const Icon(Icons.add_circle_outline, size: 20),
                       label: const Text('Add Child'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                            ? const Color(0xFF9A8C98) // Rose Quartz
+                            : const Color(0xFF4A4E69), // Ultra Violet
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: activeNode != null && !activeNode.isRoot
+                          ? () => provider.deleteNode(activeNode)
+                          : null,
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      label: const Text('Delete Node'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFDC2626),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -102,50 +118,17 @@ class ControlPanel extends StatelessWidget {
                   ),
                 ],
               ),
-
-              const SizedBox(height: 12),
-
-              // Instructions
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200, width: 1),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.blue.shade600,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Tap to select • Long press to delete • Use 🎯 to auto-fit tree',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              if (!canAddNode &&
-                  activeNode != null &&
+              if (activeNode != null &&
                   activeNode.depth >= provider.maxDepth - 1)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
+                      color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: Colors.orange.shade200,
+                        color: Theme.of(context).colorScheme.error.withOpacity(0.3),
                         width: 1,
                       ),
                     ),
@@ -154,7 +137,7 @@ class ControlPanel extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.warning_amber_rounded,
-                          color: Colors.orange.shade600,
+                          color: Theme.of(context).colorScheme.error,
                           size: 16,
                         ),
                         const SizedBox(width: 6),
@@ -162,7 +145,7 @@ class ControlPanel extends StatelessWidget {
                           'Maximum depth reached (${provider.maxDepth})',
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.orange.shade700,
+                            color: Theme.of(context).colorScheme.onErrorContainer,
                             fontWeight: FontWeight.w500,
                           ),
                         ),

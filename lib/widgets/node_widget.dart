@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/tree_node.dart';
+import 'dart:math' as math;
 
 class NodeWidget extends StatefulWidget {
   final TreeNode node;
@@ -56,28 +57,31 @@ class _NodeWidgetState extends State<NodeWidget>
     super.dispose();
   }
 
-  Color get _nodeColor {
-    if (widget.node.isActive) {
-      return const Color(0xFF8B5CF6); // Purple
-    } else if (widget.node.isRoot) {
-      return const Color(0xFF10B981); // Emerald
-    } else {
-      return const Color(0xFF3B82F6); // Blue
-    }
+  Color _getDepthColor(int depth) {
+    final colors = [
+      const Color(0xFF2D3748),
+      const Color(0xFF4A5568),
+      const Color(0xFF718096),
+      const Color(0xFF2B6CB0),
+      const Color(0xFF2C7A7B),
+      const Color(0xFF744210),
+      const Color(0xFF742A2A),
+    ];
+    return colors[depth % colors.length];
   }
 
-  Color get _nodeSecondaryColor {
-    if (widget.node.isActive) {
-      return const Color(0xFFA78BFA);
-    } else if (widget.node.isRoot) {
-      return const Color(0xFF34D399);
-    } else {
-      return const Color(0xFF60A5FA);
-    }
+  double _getNodeSize(int depth) {
+    final baseSize = math.max(40.0, 65.0 - (depth * 3.0));
+    return widget.node.isActive ? baseSize + 8 : baseSize;
   }
+
+
 
   @override
   Widget build(BuildContext context) {
+    final size = _getNodeSize(widget.node.depth);
+    final baseColor = _getDepthColor(widget.node.depth);
+    
     return AnimatedBuilder(
       animation: _pulseAnimation,
       builder: (context, child) {
@@ -86,68 +90,131 @@ class _NodeWidgetState extends State<NodeWidget>
               ? _pulseAnimation.value
               : (_isHovered ? 1.05 : 1.0),
           duration: const Duration(milliseconds: 200),
-          child: AnimatedOpacity(
-            opacity: widget.node.isActive ? 0.7 : 1.0,
-            duration: const Duration(milliseconds: 300),
-            child: MouseRegion(
-              onEnter: (_) => setState(() => _isHovered = true),
-              onExit: (_) => setState(() => _isHovered = false),
-              child: GestureDetector(
-                onTap: widget.onTap,
-                onLongPress: widget.node.isRoot ? null : widget.onDelete,
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [_nodeColor, _nodeSecondaryColor],
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                GestureDetector(
+                  onTap: widget.onTap,
+                  child: Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.node.isActive
+                          ? const Color(0xFFD69E2E)
+                          : baseColor,
+                      border: Border.all(
+                        color: widget.node.isActive
+                            ? const Color(0xFF8B5A00)
+                            : baseColor.withOpacity(0.3),
+                        width: widget.node.isActive ? 4 : 2,
+                      ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _nodeColor.withOpacity(
-                          widget.node.isActive ? 0.4 : 0.2,
-                        ),
-                        blurRadius: widget.node.isActive ? 12 : 8,
-                        offset: const Offset(0, 4),
-                      ),
-                      if (widget.node.isActive)
-                        BoxShadow(
-                          color: _nodeColor.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 0),
-                        ),
-                    ],
-                    border: widget.node.isActive
-                        ? Border.all(color: Colors.white, width: 2)
-                        : null,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        widget.node.label,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (widget.node.childCount > 0)
-                        Text(
-                          '(${widget.node.childCount})',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w400,
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                widget.node.label,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: math.max(12.0, size * 0.25),
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(
+                                      offset: const Offset(0, 1),
+                                      blurRadius: 2,
+                                      color: Colors.black.withOpacity(0.3),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (widget.node.childCount > 0)
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    '${widget.node.childCount}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: math.max(8.0, size * 0.15),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                    ],
+
+                        if (widget.node.depth > 0 && !widget.node.isActive)
+                          Positioned(
+                            top: 3,
+                            right: 3,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: baseColor.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: baseColor,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${widget.node.depth}',
+                                  style: TextStyle(
+                                    fontSize: 7,
+                                    fontWeight: FontWeight.bold,
+                                    color: baseColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+                if (!widget.node.isRoot)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: GestureDetector(
+                      onTap: widget.onDelete,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade500,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         );

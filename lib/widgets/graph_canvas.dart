@@ -28,6 +28,21 @@ class _GraphCanvasState extends State<GraphCanvas>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Set initial transformation to show root node at top center
+    final screenWidth = MediaQuery.of(context).size.width;
+    _transformationController.value = Matrix4.identity()
+      ..translate(screenWidth / 2 - 1000.0, 50.0);
+  }
+
+  void _centerOnRoot() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    _transformationController.value = Matrix4.identity()
+      ..translate(screenWidth / 2 - 1000.0, 50.0);
+  }
+
+  @override
   void dispose() {
     _transformationController.dispose();
     _animationController.dispose();
@@ -37,16 +52,7 @@ class _GraphCanvasState extends State<GraphCanvas>
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFF8FAFC),
-            Colors.blue.shade50.withOpacity(0.3),
-          ],
-        ),
-      ),
+      color: Theme.of(context).colorScheme.background,
       child: Consumer<GraphProvider>(
         builder: (context, provider, child) {
           return InteractiveViewer(
@@ -54,26 +60,25 @@ class _GraphCanvasState extends State<GraphCanvas>
             minScale: 0.5,
             maxScale: 3.0,
             constrained: false,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
             child: SizedBox(
               width: 2000,
               height: 2000,
               child: Stack(
                 children: [
-                  // Background grid (subtle)
+
                   CustomPaint(
                     painter: GridPainter(),
                     size: const Size(2000, 2000),
                   ),
-                  // Edges
+
                   CustomPaint(
                     painter: EdgePainter(provider.getAllEdges()),
                     size: const Size(2000, 2000),
                   ),
-                  // Nodes
+
                   ...provider.getAllNodes().map(
-                    (node) => AnimatedPositioned(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOutBack,
+                    (node) => Positioned(
                       left: node.position.dx - 30,
                       top: node.position.dy - 30,
                       child: NodeWidget(

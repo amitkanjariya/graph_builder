@@ -7,103 +7,69 @@ class EdgePainter extends CustomPainter {
 
   EdgePainter(this.edges);
 
+  Color _getDepthColor(int depth) {
+    final colors = [
+      const Color(0xFF2D3748),
+      const Color(0xFF4A5568),
+      const Color(0xFF718096),
+      const Color(0xFF2B6CB0),
+      const Color(0xFF2C7A7B),
+      const Color(0xFF744210),
+      const Color(0xFF742A2A),
+    ];
+    return colors[depth % colors.length];
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final shadowPaint = Paint()
-      ..strokeWidth = 3.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..color = Colors.black.withOpacity(0.1);
-
     for (final edge in edges) {
       final parentPos = edge.parent.position;
       final childPos = edge.child.position;
+      final parentColor = _getDepthColor(edge.parent.depth);
 
-      // Calculate connection points (edge of circles)
-      final direction = (childPos - parentPos);
-      final distance = direction.distance;
+      if ((childPos - parentPos).distance == 0) continue;
 
-      if (distance == 0) continue;
+      final nodeRadius = 30.0;
 
-      final normalizedDirection = direction / distance;
-      const nodeRadius = 30.0;
+      final startPoint = Offset(parentPos.dx, parentPos.dy + nodeRadius);
+      final endPoint = Offset(childPos.dx, childPos.dy - nodeRadius);
 
-      final startPoint = parentPos + (normalizedDirection * nodeRadius);
-      final endPoint = childPos - (normalizedDirection * nodeRadius);
+      final path = _createCurvedPath(startPoint, endPoint);
 
-      // Create a curved path
-      final controlPoint1 = Offset(
-        startPoint.dx + (endPoint.dx - startPoint.dx) * 0.3,
-        startPoint.dy + (endPoint.dy - startPoint.dy) * 0.1,
-      );
-      final controlPoint2 = Offset(
-        startPoint.dx + (endPoint.dx - startPoint.dx) * 0.7,
-        startPoint.dy + (endPoint.dy - startPoint.dy) * 0.9,
-      );
-
-      final path = Path();
-      path.moveTo(startPoint.dx, startPoint.dy);
-      path.cubicTo(
-        controlPoint1.dx,
-        controlPoint1.dy,
-        controlPoint2.dx,
-        controlPoint2.dy,
-        endPoint.dx,
-        endPoint.dy,
-      );
-
-      // Draw shadow
+      final shadowPaint = Paint()
+        ..strokeWidth = 3.0
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..color = Colors.black.withOpacity(0.1);
       canvas.drawPath(path, shadowPaint);
 
-      // Set gradient colors based on parent node state
-      final gradient = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: edge.parent.isActive
-            ? [const Color(0xFF8B5CF6), const Color(0xFFA78BFA)]
-            : edge.parent.isRoot
-            ? [const Color(0xFF10B981), const Color(0xFF34D399)]
-            : [const Color(0xFF3B82F6), const Color(0xFF60A5FA)],
-      );
-
-      paint.shader = gradient.createShader(
-        Rect.fromPoints(startPoint, endPoint),
-      );
-
-      // Draw main line
+      final paint = Paint()
+        ..color = edge.parent.isActive
+            ? const Color(0xFFD69E2E)
+            : parentColor.withOpacity(0.8)
+        ..strokeWidth = 2.5
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
       canvas.drawPath(path, paint);
-
-      // Draw arrowhead
-      _drawArrowHead(canvas, paint, endPoint, normalizedDirection);
     }
   }
 
-  void _drawArrowHead(
-    Canvas canvas,
-    Paint paint,
-    Offset point,
-    Offset direction,
-  ) {
-    const arrowLength = 12.0;
-    const arrowAngle = 0.5; // radians
+  Path _createCurvedPath(Offset start, Offset end) {
+    final path = Path();
+    path.moveTo(start.dx, start.dy);
 
-    final arrowPoint1 = point - (direction * arrowLength).rotate(arrowAngle);
-    final arrowPoint2 = point - (direction * arrowLength).rotate(-arrowAngle);
-
-    final arrowPath = Path();
-    arrowPath.moveTo(point.dx, point.dy);
-    arrowPath.lineTo(arrowPoint1.dx, arrowPoint1.dy);
-    arrowPath.moveTo(point.dx, point.dy);
-    arrowPath.lineTo(arrowPoint2.dx, arrowPoint2.dy);
-
-    paint.style = PaintingStyle.stroke;
-    canvas.drawPath(arrowPath, paint);
+    final midY = start.dy + (end.dy - start.dy) * 0.6;
+    final controlPoint = Offset(start.dx, midY);
+    
+    path.quadraticBezierTo(
+      controlPoint.dx, controlPoint.dy,
+      end.dx, end.dy,
+    );
+    
+    return path;
   }
+
+
 
   @override
   bool shouldRepaint(covariant EdgePainter oldDelegate) {

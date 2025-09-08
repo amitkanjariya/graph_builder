@@ -8,6 +8,8 @@ class GraphProvider extends ChangeNotifier {
   TreeNode? _animatingNode;
   int _nextId = 1;
   final int _maxDepth = 100;
+  Map<int, Offset> _targetPositions = {};
+  bool _isAnimating = false;
 
   TreeNode? get rootNode => _rootNode;
   TreeNode? get activeNode => _activeNode;
@@ -17,7 +19,7 @@ class GraphProvider extends ChangeNotifier {
     _initializeGraph();
   }
 
-  void _initializeGraph() {
+  void _initializeGraph([BuildContext? context]) {
     _rootNode = TreeNode(
       id: _nextId++,
       label: "1",
@@ -25,7 +27,7 @@ class GraphProvider extends ChangeNotifier {
       isActive: true,
     );
     _activeNode = _rootNode;
-    _calculatePositions();
+    _calculatePositions(context);
     notifyListeners();
   }
 
@@ -41,78 +43,154 @@ class GraphProvider extends ChangeNotifier {
   void addChildToActive() {
     if (_activeNode == null) return;
 
-    // Check max depth constraint
     if (_activeNode!.depth >= _maxDepth - 1) {
       debugPrint('Maximum depth reached. Cannot add more nodes.');
       return;
     }
 
     TreeNode newNode = TreeNode(id: _nextId++, label: _nextId.toString());
-
     _activeNode!.addChild(newNode);
+    
     _calculatePositions();
     notifyListeners();
   }
 
   void deleteNode(TreeNode node) {
     if (node.isRoot) {
-      // Cannot delete root node, but we can clear its children
       node.children.clear();
       _calculatePositions();
-      notifyListeners();
+      animateToTargetPositions();
       return;
     }
 
-    // Set the node as animating before deletion
     _animatingNode = node;
     notifyListeners();
 
-    // If deleting the active node, set parent as active
     if (node == _activeNode) {
       setActiveNode(node.parent!);
     } else if (node.getAllDescendants().contains(_activeNode)) {
-      // If active node is a descendant of the node being deleted
       setActiveNode(node.parent!);
     }
 
-    // Delay the actual deletion to show animation
     Future.delayed(const Duration(milliseconds: 300), () {
       node.removeFromParent();
       _animatingNode = null;
       _calculatePositions();
-      notifyListeners();
+      animateToTargetPositions();
     });
   }
 
-  void _calculatePositions() {
+  void _calculatePositions([BuildContext? context]) {
     if (_rootNode == null) return;
 
-    const double verticalSpacing = 120.0;
-    const double horizontalSpacing = 80.0;
+    const double verticalSpacing = 150.0;
+    const double minHorizontalSpacing = 45.0;
+    const double nodeRadius = 30.0;
 
-    _positionNode(_rootNode!, 200.0, 100.0, horizontalSpacing, verticalSpacing);
+    double rootX = 1000.0;
+    if (context != null) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      rootX = screenWidth / 2;
+    }
+
+
+    _positionNodeWithSpacing(_rootNode!, rootX, 100.0, verticalSpacing, minHorizontalSpacing, nodeRadius);
+
+    _storeTargetPositions(_rootNode!);
   }
 
-  void _positionNode(
-    TreeNode node,
-    double x,
-    double y,
-    double hSpacing,
-    double vSpacing,
-  ) {
+  void _positionNodeWithSpacing(TreeNode node, double x, double y, double vSpacing, double minHSpacing, double nodeRadius) {
     node.position = Offset(x, y);
 
     if (node.children.isEmpty) return;
 
-    double totalWidth = (node.children.length - 1) * hSpacing;
+
+    List<double> subtreeWidths = [];
+    for (TreeNode child in node.children) {
+      subtreeWidths.add(_calculateSubtreeWidth(child, minHSpacing, nodeRadius));
+    }
+
+
+    double totalWidth = subtreeWidths.fold(0.0, (sum, width) => sum + width);
+    if (node.children.length > 1) {
+      totalWidth += (node.children.length - 1) * minHSpacing;
+    }
+
+
     double startX = x - totalWidth / 2;
+    double currentX = startX;
 
     for (int i = 0; i < node.children.length; i++) {
-      double childX = startX + (i * hSpacing);
+      TreeNode child = node.children[i];
+      double childX = currentX + subtreeWidths[i] / 2;
       double childY = y + vSpacing;
 
-      _positionNode(node.children[i], childX, childY, hSpacing * 0.8, vSpacing);
+      _positionNodeWithSpacing(child, childX, childY, vSpacing, minHSpacing, nodeRadius);
+      currentX += subtreeWidths[i] + minHSpacing;
     }
+  }
+
+  double _calculateSubtreeWidth(TreeNode node, double minHSpacing, double nodeRadius) {
+    if (node.children.isEmpty) {
+      return nodeRadius * 2;
+    }
+
+    double totalChildWidth = 0;
+    for (TreeNode child in node.children) {
+      totalChildWidth += _calculateSubtreeWidth(child, minHSpacing, nodeRadius);
+    }
+
+    if (node.children.length > 1) {
+      totalChildWidth += (node.children.length - 1) * minHSpacing;
+    }
+
+    return totalChildWidth.clamp(nodeRadius * 2, double.infinity);
+  }
+
+  void _storeTargetPositions(TreeNode node) {
+    _targetPositions[node.id] = node.position;
+    for (TreeNode child in node.children) {
+      _storeTargetPositions(child);
+    }
+  }
+
+  void animateToTargetPositions() {
+    if (_isAnimating) return;
+    _isAnimating = true;
+    
+    Map<int, Offset> startPositions = {};
+    for (TreeNode node in getAllNodes()) {
+      startPositions[node.id] = node.position;
+    }
+
+    const duration = Duration(milliseconds: 500);
+    const steps = 30;
+    final stepDuration = Duration(milliseconds: duration.inMilliseconds ~/ steps);
+    
+    int currentStep = 0;
+    
+    void animateStep() {
+      if (currentStep >= steps) {
+        _isAnimating = false;
+        return;
+      }
+      
+      double progress = currentStep / (steps - 1);
+      progress = Curves.easeOut.transform(progress);
+      
+      for (TreeNode node in getAllNodes()) {
+        Offset start = startPositions[node.id] ?? node.position;
+        Offset target = _targetPositions[node.id] ?? node.position;
+        node.position = Offset.lerp(start, target, progress) ?? node.position;
+      }
+      
+      notifyListeners();
+      currentStep++;
+      
+      Future.delayed(stepDuration, animateStep);
+    }
+    
+    animateStep();
   }
 
   List<TreeNode> getAllNodes() {
@@ -137,8 +215,10 @@ class GraphProvider extends ChangeNotifier {
     return edges;
   }
 
-  void resetGraph() {
+  void resetGraph([BuildContext? context]) {
     _nextId = 1;
-    _initializeGraph();
+    _initializeGraph(context);
   }
+
+
 }
